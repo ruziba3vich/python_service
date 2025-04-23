@@ -7,6 +7,7 @@ import (
 
 	"github.com/ruziba3vich/python_service/genprotos/genprotos/compiler_service"
 	"github.com/ruziba3vich/python_service/internal/service"
+	"github.com/ruziba3vich/python_service/pkg/lgg"
 	"go.uber.org/fx"
 	"google.golang.org/grpc"
 )
@@ -30,6 +31,7 @@ func main() {
 	fx.New(
 		fx.Provide(
 			NewNetListener,
+			lgg.NewLogger,
 			service.NewPythonExecutorServer,
 		),
 		fx.Invoke(func(lc fx.Lifecycle, lis net.Listener, server *service.PythonExecutorServer) {
