@@ -1,0 +1,31 @@
+services:
+  python-executor:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "7771:7771"
+    depends_on:
+      - python-runner
+    networks:
+      - compiler-network
+    environment:
+      - DOCKER_HOST=unix:///var/run/docker.sock
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /tmp:/tmp
+    restart: unless-stopped
+
+  python-runner:
+    image: python:3.12-slim
+    container_name: online_compiler-python-runner-1
+    command: ["tail", "-f", "/dev/null"]
+    networks:
+      - compiler-network
+    volumes:
+      - /tmp:/tmp
+    restart: unless-stopped
+
+networks:
+  compiler-network:
+    driver: bridge
