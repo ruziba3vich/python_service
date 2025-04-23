@@ -1,3 +1,6 @@
 [submodule "protos/compiler_protos"]
 	path = protos/compiler_protos
 	url = https://github.com/ruziba3vich/compiler_protos.git
+[submodule "protos/logging_protos"]
+	path = protos/logging_protos
+	url = https://github.com/ruziba3vich/logging_protos.git
