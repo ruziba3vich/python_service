@@ -4,28 +4,35 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"log"
 	"sync"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/ruziba3vich/python_service/genprotos/genprotos/compiler_service"
 	"github.com/ruziba3vich/python_service/internal/storage"
+	"github.com/ruziba3vich/python_service/pkg/lgg"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/peer"
 	"google.golang.org/grpc/status"
 )
 
-func NewPythonExecutorServer() *PythonExecutorServer {
-	return &PythonExecutorServer{
-		clients: make(map[string]*storage.Client),
-	}
-}
-
 type PythonExecutorServer struct {
 	compiler_service.UnimplementedCodeExecutorServer
 	clients map[string]*storage.Client
 	mu      sync.Mutex
+	logger  *lgg.Logger
+}
+
+func NewPythonExecutorServer() (*PythonExecutorServer, error) {
+	logger, err := lgg.NewLogger()
+	if err != nil {
+		return nil, fmt.Errorf("failed to create logger: %w", err)
+	}
+
+	return &PythonExecutorServer{
+		clients: make(map[string]*storage.Client),
+		logger:  logger,
+	}, nil
 }
 
 func (s *PythonExecutorServer) removeClient(sessionID string) {
@@ -33,12 +40,12 @@ func (s *PythonExecutorServer) removeClient(sessionID string) {
 	defer s.mu.Unlock()
 
 	if client, exists := s.clients[sessionID]; exists {
-		log.Printf("[%s] Removing client session.", sessionID)
+		s.logger.Info("Removing client session", map[string]any{"session_id": sessionID})
 		client.Cleanup()
 		delete(s.clients, sessionID)
-		log.Printf("[%s] Client session removed.", sessionID)
+		s.logger.Info("Client session removed", map[string]any{"session_id": sessionID})
 	} else {
-		log.Printf("[%s] Client session already removed.", sessionID)
+		s.logger.Warn("Client session already removed", map[string]any{"session_id": sessionID})
 	}
 }
 
@@ -50,14 +57,16 @@ func (s *PythonExecutorServer) Execute(stream compiler_service.CodeExecutor_Exec
 	if p, ok := peer.FromContext(stream.Context()); ok {
 		clientAddr = p.Addr.String()
 	}
-	log.Printf("New Execute stream started from %s", clientAddr)
+	s.logger.Info("New Execute stream started", map[string]any{"client_addr": clientAddr})
 
 	defer func() {
 		if sessionID != "" {
-			log.Printf("[%s] Execute stream ended. Initiating cleanup for session.", sessionID)
+			s.logger.Info("Execute stream ended. Initiating cleanup for session",
+				map[string]any{"session_id": sessionID})
 			s.removeClient(sessionID)
 		} else {
-			log.Printf("Execute stream ended before session was established from %s", clientAddr)
+			s.logger.Info("Execute stream ended before session was established",
+				map[string]any{"client_addr": clientAddr})
 		}
 	}()
 
@@ -65,14 +74,16 @@ func (s *PythonExecutorServer) Execute(stream compiler_service.CodeExecutor_Exec
 		req, err := stream.Recv()
 		if err != nil {
 			if err == io.EOF {
-				log.Printf("[%s] Stream closed by client (EOF).", sessionID)
+				s.logger.Info("Stream closed by client (EOF)", map[string]any{"session_id": sessionID})
 				return nil
 			}
 			if status.Code(err) == codes.Canceled || status.Code(err) == codes.DeadlineExceeded {
-				log.Printf("[%s] Stream context cancelled or deadline exceeded: %v", sessionID, err)
+				s.logger.Warn("Stream context cancelled or deadline exceeded",
+					map[string]any{"session_id": sessionID, "error": err})
 				return err
 			}
-			log.Printf("[%s] Stream receive error: %v", sessionID, err)
+			s.logger.Error(fmt.Sprintf("Stream receive error: %v", err),
+				map[string]any{"session_id": sessionID, "error": err})
 			return status.Errorf(codes.Internal, "stream error: %v", err)
 		}
 
@@ -80,19 +91,22 @@ func (s *PythonExecutorServer) Execute(stream compiler_service.CodeExecutor_Exec
 			sessionID = req.SessionId
 			if sessionID == "" {
 				sessionID = uuid.NewString()
-				log.Printf("No session_id provided by %s, generated new one: %s", clientAddr, sessionID)
+				s.logger.Warn("No session_id provided, generated new one",
+					map[string]any{"client_addr": clientAddr, "session_id": sessionID})
 			}
-			log.Printf("[%s] Initial request received.", sessionID)
+			s.logger.Info("Initial request received", map[string]any{"session_id": sessionID})
 
 			s.mu.Lock()
 			if existingClient, exists := s.clients[sessionID]; exists {
 				s.mu.Unlock()
 				if existingClient.CtxDone() {
-					log.Printf("[%s] Stale session found, cleaning up and allowing new one.", sessionID)
+					s.logger.Info("Stale session found, cleaning up and allowing new one",
+						map[string]any{"session_id": sessionID})
 					s.removeClient(sessionID)
 					s.mu.Lock()
 				} else {
-					log.Printf("[%s] Session already exists and is active.", sessionID)
+					s.logger.Error("Session already exists and is active",
+						map[string]any{"session_id": sessionID})
 					return status.Errorf(codes.AlreadyExists, "session %s already exists", sessionID)
 				}
 			}
@@ -102,27 +116,31 @@ func (s *PythonExecutorServer) Execute(stream compiler_service.CodeExecutor_Exec
 			go func() {
 				select {
 				case <-linkedCtx.Done():
-					log.Printf("[%s] Stream context done (%v), cancelling client context.", sessionID, linkedCtx.Err())
+					s.logger.Info(fmt.Sprintf("Stream context done (%v), cancelling client context",
+						linkedCtx.Err()), map[string]any{"session_id": sessionID})
 					clientCancel()
 				case <-clientCtx.Done():
 					linkedCancel()
 				}
 			}()
 
-			client = storage.NewClient(sessionID, clientCtx, clientCancel)
+			client = storage.NewClient(sessionID, clientCtx, clientCancel, s.logger)
 			s.clients[sessionID] = client
-			log.Printf("[%s] New client created.", sessionID)
+			s.logger.Info("New client created", map[string]any{"session_id": sessionID})
 			s.mu.Unlock()
 
 			go client.SendResponses(stream)
 
 		} else {
 			if req.SessionId != sessionID {
-				log.Printf("[%s] Received message with mismatched session ID %s", sessionID, req.SessionId)
+				s.logger.Warn(fmt.Sprintf("Received message with mismatched session ID %s", req.SessionId),
+					map[string]any{"session_id": sessionID, "received_session_id": req.SessionId})
 				client.SendResponse(&compiler_service.ExecuteResponse{
 					SessionId: sessionID,
 					Payload: &compiler_service.ExecuteResponse_Error{
-						Error: &compiler_service.Error{ErrorText: fmt.Sprintf("Mismatched session ID: expected %s, got %s", sessionID, req.SessionId)},
+						Error: &compiler_service.Error{
+							ErrorText: fmt.Sprintf("Mismatched session ID: expected %s, got %s", sessionID, req.SessionId),
+						},
 					},
 				})
 				continue
@@ -131,9 +149,10 @@ func (s *PythonExecutorServer) Execute(stream compiler_service.CodeExecutor_Exec
 
 		switch payload := req.Payload.(type) {
 		case *compiler_service.ExecuteRequest_Code:
-			log.Printf("[%s] Received Code payload", sessionID)
+			s.logger.Info("Received Code payload", map[string]any{"session_id": sessionID})
 			if payload.Code.Language != "python" {
-				log.Printf("[%s] Unsupported language: %s", sessionID, payload.Code.Language)
+				s.logger.Warn(fmt.Sprintf("Unsupported language: %s", payload.Code.Language),
+					map[string]any{"session_id": sessionID, "language": payload.Code.Language})
 				client.SendResponse(&compiler_service.ExecuteResponse{
 					SessionId: sessionID,
 					Payload: &compiler_service.ExecuteResponse_Error{
@@ -142,15 +161,17 @@ func (s *PythonExecutorServer) Execute(stream compiler_service.CodeExecutor_Exec
 				})
 				continue
 			}
-			log.Printf("[%s] Starting Python execution...", sessionID)
+			s.logger.Info("Starting Python execution", map[string]any{"session_id": sessionID})
 			go client.ExecutePython(payload.Code.SourceCode)
 
 		case *compiler_service.ExecuteRequest_Input:
-			log.Printf("[%s] Received Input payload: %q", sessionID, payload.Input.InputText)
+			s.logger.Info(fmt.Sprintf("Received Input payload: %q", payload.Input.InputText),
+				map[string]any{"session_id": sessionID, "input": payload.Input.InputText})
 			client.HandleInput(payload.Input.InputText)
 
 		default:
-			log.Printf("[%s] Received unknown payload type: %T", sessionID, payload)
+			s.logger.Warn(fmt.Sprintf("Received unknown payload type: %T", payload),
+				map[string]any{"session_id": sessionID, "payload_type": fmt.Sprintf("%T", payload)})
 			client.SendResponse(&compiler_service.ExecuteResponse{
 				SessionId: sessionID,
 				Payload: &compiler_service.ExecuteResponse_Error{
