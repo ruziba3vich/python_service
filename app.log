@@ -1,0 +1,22 @@
+{"error":"kafka:9092/1: Failed to resolve 'kafka:9092': Name or service not known (after 83ms in state CONNECT)","level":"error","msg":"Kafka producer error","time":"2025-04-24T03:26:45+05:00"}
+{"error":"kafka:9092/1: Failed to resolve 'kafka:9092': Name or service not known (after 6ms in state CONNECT, 1 identical error(s) suppressed)","level":"error","msg":"Kafka producer error","time":"2025-04-24T03:26:46+05:00"}
+{"level":"info","msg":"Flushing Kafka producer","time":"2025-04-24T03:26:55+05:00"}
+{"level":"warning","msg":"KafkaLogger is stopped, dropping log","time":"2025-04-24T03:26:55+05:00"}
+{"level":"warning","msg":"KafkaLogger is stopped, dropping log","time":"2025-04-24T03:26:55+05:00"}
+{"level":"warning","msg":"KafkaLogger is stopped, dropping log","time":"2025-04-24T03:26:55+05:00"}
+{"level":"warning","msg":"KafkaLogger is stopped, dropping log","time":"2025-04-24T03:26:55+05:00"}
+{"level":"warning","msg":"KafkaLogger is stopped, dropping log","time":"2025-04-24T03:26:55+05:00"}
+{"level":"warning","msg":"KafkaLogger is stopped, dropping log","time":"2025-04-24T03:26:55+05:00"}
+{"level":"warning","msg":"KafkaLogger is stopped, dropping log","time":"2025-04-24T03:26:55+05:00"}
+{"level":"warning","msg":"KafkaLogger is stopped, dropping log","time":"2025-04-24T03:26:55+05:00"}
+{"level":"warning","msg":"KafkaLogger is stopped, dropping log","time":"2025-04-24T03:26:55+05:00"}
+{"level":"warning","msg":"KafkaLogger is stopped, dropping log","time":"2025-04-24T03:26:55+05:00"}
+{"level":"warning","msg":"KafkaLogger is stopped, dropping log","time":"2025-04-24T03:26:55+05:00"}
+{"level":"warning","msg":"KafkaLogger is stopped, dropping log","time":"2025-04-24T03:26:55+05:00"}
+{"level":"warning","msg":"KafkaLogger is stopped, dropping log","time":"2025-04-24T03:26:55+05:00"}
+{"level":"warning","msg":"KafkaLogger is stopped, dropping log","time":"2025-04-24T03:26:55+05:00"}
+{"level":"info","msg":"Received stop signal, stopping processLogs","time":"2025-04-24T03:26:55+05:00"}
+{"level":"info","msg":"Stopping delivery reports handler","time":"2025-04-24T03:26:55+05:00"}
+{"level":"warning","msg":"Flushed 0 messages, 19 remaining","time":"2025-04-24T03:27:00+05:00"}
+{"level":"info","msg":"KafkaLogger closed","time":"2025-04-24T03:27:00+05:00"}
+{"level":"warning","msg":"KafkaLogger is stopped, dropping log","time":"2025-04-24T03:27:00+05:00"}
