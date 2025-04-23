@@ -27,6 +27,16 @@ type Client struct {
 	mu        sync.Mutex
 }
 
+func NewClient(sessionID string, ctx context.Context, cancel context.CancelFunc) *Client {
+	return &Client{
+		sessionID: sessionID,
+		done:      make(chan struct{}),
+		sendChan:  make(chan *compiler_service.ExecuteResponse, 100),
+		ctx:       ctx,
+		cancel:    cancel,
+	}
+}
+
 func (c *Client) ReadOutputs(stdout, stderr io.Reader) {
 	stdoutScanner := bufio.NewScanner(stdout)
 	stderrScanner := bufio.NewScanner(stderr)
