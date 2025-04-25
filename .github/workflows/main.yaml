@@ -20,7 +20,7 @@ jobs:
 
       - name: Ensure target directory exists on server
         run: |
-          ssh -T -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} "mkdir -p /home/${{ secrets.SSH_USER }}/online_compiler/logging_service"
+          ssh -T -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} "mkdir -p /home/${{ secrets.SSH_USER }}/online_compiler/python_service"
 
       - name: Synchronize files to server with rsync
         run: |
