@@ -24,7 +24,7 @@ jobs:
 
       - name: Synchronize files to server with rsync
         run: |
-          rsync -avz --delete -e "ssh -o StrictHostKeyChecking=no" --exclude '.git' ./ ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }}:/home/${{ secrets.SSH_USER }}/online_compiler/logging_service/
+          rsync -avz --delete -e "ssh -o StrictHostKeyChecking=no" --exclude '.git' ./ ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }}:/home/${{ secrets.SSH_USER }}/online_compiler/python_service/
 
       - name: Verify Docker Compose is installed
         run: |
@@ -35,7 +35,7 @@ jobs:
           ssh -T -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} << 'EOF'
             set -e
             echo "Changing directory to logging service..."
-            cd /home/${{ secrets.SSH_USER }}/online_compiler/logging_service
+            cd /home/${{ secrets.SSH_USER }}/online_compiler/python_service
             echo "Running docker compose down..."
             docker compose down
             echo "Running docker compose up -d --build..."
