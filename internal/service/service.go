@@ -23,16 +23,11 @@ type PythonExecutorServer struct {
 	logger  *lgg.Logger
 }
 
-func NewPythonExecutorServer() (*PythonExecutorServer, error) {
-	logger, err := lgg.NewLogger()
-	if err != nil {
-		return nil, fmt.Errorf("failed to create logger: %w", err)
-	}
-
+func NewPythonExecutorServer(logger *lgg.Logger) *PythonExecutorServer {
 	return &PythonExecutorServer{
 		clients: make(map[string]*storage.Client),
 		logger:  logger,
-	}, nil
+	}
 }
 
 func (s *PythonExecutorServer) removeClient(sessionID string) {
