@@ -13,7 +13,7 @@ import (
 )
 
 func NewNetListener(lc fx.Lifecycle) (net.Listener, error) {
-	lis, err := net.Listen("tcp", ":7771")
+	lis, err := net.Listen("tcp", ":702")
 	if err != nil {
 		return nil, err
 	}
