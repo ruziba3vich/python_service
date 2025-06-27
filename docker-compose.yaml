@@ -4,7 +4,7 @@ services:
       context: .
       dockerfile: Dockerfile
     ports:
-      - "7771:7771"
+      - "702:702"
     depends_on:
       - python-runner
     networks:
