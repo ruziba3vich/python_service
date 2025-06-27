@@ -16,6 +16,6 @@ RUN apk --no-cache add ca-certificates docker-cli
 # Copy the binary from the builder stage
 COPY --from=builder /python-executor /python-executor
 
-EXPOSE 7771
+EXPOSE 702
 
 CMD ["/python-executor"]
